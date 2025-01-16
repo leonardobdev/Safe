@@ -49,18 +49,31 @@ hashpwd:"",
 logged:false,
 };
 
+let update=()=>{
+$("#logged").checked=config.logged;
+$("#hashusr").value=config.hashusr;
+$("#hashpwd").value=config.hashpwd;
+$$("#signin","fieldset").disabled=config.logged;
+$$("#login","fieldset").disabled=config.logged;
+$$("#logout","fieldset").disabled=!config.logged;
+};
+
+$("#config").onsubmit=async(e)=>{
+e.preventDefault();
+let data=Object.fromEntries(new FormData(e.target));
+config.logged=data.logged;
+config.hashusr=data.hashusr;
+config.hashpwd=data.hashpwd;
+update();
+};
+
 $("#signin").onsubmit=async(e)=>{
 e.preventDefault();
 let data=Object.fromEntries(new FormData(e.target));
 config.logged=!config.logged;
 config.hashusr=await c(data.usr,data.usr);
 config.hashpwd=await c(data.pwd,data.pwd);
-$("#hashusr").innerText=config.hashusr;
-$("#hashpwd").innerText=config.hashpwd;
-$("#status").checked=config.logged;
-$$("#logout","fieldset").disabled=!config.logged;
-$$("#clear","fieldset").disabled=!config.logged;
-$$("#signin","fieldset").disabled=config.logged;
+update();
 e.target.reset();
 };
 
@@ -68,18 +81,14 @@ $("#login").onsubmit=async(e)=>{
 e.preventDefault();
 let data=Object.fromEntries(new FormData(e.target));
 config.logged=await v(data.usr,data.usr,config.hashusr)==await v(data.pwd,data.pwd,config.hashpwd)==true;
-$("#status").checked=config.logged;
-$$("#logout","fieldset").disabled=!config.logged;
-$$("#login","fieldset").disabled=config.logged;
+update();
 e.target.reset();
 };
 
 $("#logout").onsubmit=async(e)=>{
 e.preventDefault();
 config.logged=false;
-$("#status").checked=config.logged;
-$$("#login","fieldset").disabled=config.logged;
-$$("#logout","fieldset").disabled=!config.logged;
+update();
 };
 
 $("#clear").onsubmit=async(e)=>{
@@ -87,28 +96,31 @@ e.preventDefault();
 config.logged=!config.logged;
 config.hashusr="";
 config.hashpwd="";
-$("#hashusr").innerText=config.hashusr;
-$("#hashpwd").innerText=config.hashpwd;
-$("#status").checked=config.logged;
-$$("#signin","fieldset").disabled=config.logged;
-$$("#login","fieldset").disabled=config.logged;
-$$("#logout","fieldset").disabled=!config.logged;
-$$("#clear","fieldset").disabled=!config.logged;
+update();
 };
 
 };
-</script></header><body>
-<label for="status">logged:
-<input type="checkbox" id="status" disabled />
+</script></header><body style="font-family: Monospace;">
+<form id="config" style="width: fit-content;">
+<fieldset>
+<legend>config</legend>
+<label for="logged">logged:
+<input type="checkbox" id="logged" />
 </label>
 <br />
-hashusr:
-<span id="hashusr"></span>
+<label for="hashusr">hashusr:
+<input type="password" id="hashusr" />
+</label>
 <br />
-hashpwd:
-<span id="hashpwd"></span>
+<label for="hashpwd">hashpwd:
+<input type="password" id="hashpwd" />
+</label>
+<span style="display: flex; justify-content: right;">
+<input type="submit" />
+</span>
+</fieldset>
+</form>
 
-<br/>
 <br/>
 
 <form id="signin" style="width: fit-content;">
@@ -153,7 +165,7 @@ hashpwd:
 <br />
 
 <form id="clear" style="width: fit-content;">
-<fieldset disabled>
+<fieldset>
 <legend>clear</legend>
 <span style="display: flex; justify-content: right;">
 <input type="submit" />
