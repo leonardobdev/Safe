@@ -1,62 +1,164 @@
 <html><header><script type="module">
 window.onload = () => {
 
-async function encrypt(plaintext, password) {
-    const ptUtf8 = new TextEncoder().encode(plaintext);
-    const pwUtf8 = new TextEncoder().encode(password);
-    const pwHash = await window.crypto.subtle.digest('SHA-256', pwUtf8);
+let encrypt=async(plaintext,password)=>{
+let ptUtf8 = new TextEncoder().encode(plaintext);
+let pwUtf8 = new TextEncoder().encode(password);
+let pwHash = await window.crypto.subtle.digest('SHA-256', pwUtf8);
+let iv = window.crypto.getRandomValues(new Uint8Array(16));
+let alg = { name: 'AES-CBC', iv: iv };
+let key = await window.crypto.subtle.importKey('raw', pwHash, alg, false, ['encrypt']);
+let ctBuffer = await window.crypto.subtle.encrypt(alg, key, ptUtf8);
+let ctArray = new Uint8Array(ctBuffer);
+let ctBase64 = btoa(String.fromCharCode(...ctArray));
+let ivHex = Array.from(iv).map(b => ('00' + b.toString(16)).slice(-2)).join('');
+return ivHex + ctBase64;
+};
 
-    const iv = window.crypto.getRandomValues(new Uint8Array(16));
-    const alg = { name: 'AES-CBC', iv: iv };
-    const key = await window.crypto.subtle.importKey('raw', pwHash, alg, false, ['encrypt']);
+let decrypt=async(ciphertext,password)=>{
+let ivHex = ciphertext.slice(0, 32);
+let ctBase64 = ciphertext.slice(32);
+let iv = new Uint8Array(ivHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+let ctStr = atob(ctBase64);
+let ctArray = new Uint8Array(ctStr.split('').map(c => c.charCodeAt(0)));
+let pwUtf8 = new TextEncoder().encode(password);
+let pwHash = await window.crypto.subtle.digest('SHA-256', pwUtf8);
+let alg = { name: 'AES-CBC', iv: iv };
+let key = await window.crypto.subtle.importKey('raw', pwHash, alg, false, ['decrypt']);
+let ptBuffer = await window.crypto.subtle.decrypt(alg, key, ctArray);
+let plaintext = new TextDecoder().decode(ptBuffer);
+return plaintext;
+};
 
-    const ctBuffer = await window.crypto.subtle.encrypt(alg, key, ptUtf8);
-    const ctArray = new Uint8Array(ctBuffer);
-    const ctBase64 = btoa(String.fromCharCode(...ctArray));
-
-    const ivHex = Array.from(iv).map(b => ('00' + b.toString(16)).slice(-2)).join('');
-    return ivHex + ctBase64;
-}
-
-async function decrypt(ciphertext, password) {
-    const ivHex = ciphertext.slice(0, 32);
-    const ctBase64 = ciphertext.slice(32);
-
-    const iv = new Uint8Array(ivHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-
-    const ctStr = atob(ctBase64);
-    const ctArray = new Uint8Array(ctStr.split('').map(c => c.charCodeAt(0)));
-
-    const pwUtf8 = new TextEncoder().encode(password);
-    const pwHash = await window.crypto.subtle.digest('SHA-256', pwUtf8);
-
-    const alg = { name: 'AES-CBC', iv: iv };
-    const key = await window.crypto.subtle.importKey('raw', pwHash, alg, false, ['decrypt']);
-
-    const ptBuffer = await window.crypto.subtle.decrypt(alg, key, ctArray);
-    const plaintext = new TextDecoder().decode(ptBuffer);
-
-    return plaintext;
-}
-
-let k="";
-let $=e=>document.querySelector(e);
+let $=(e)=>document.querySelector(e);
+let $$=(e,ee)=>$(e).querySelector(ee);
 let $f=(e)=>[...document.querySelectorAll('*')].filter(a=>a.value==e||a.innerText==e)[0];
-let c=async(e,k)=>await encrypt(e,k);
-let d=async(e,k)=>await decrypt(e,k);
-let r=e=>Number(e).toString(36);
-$f("code").onclick=async()=>{$("#number").value=await c($("#text").value,$("#key").value);};
-$f("decode").onclick=async()=>{$("#text").value=await d($("#number").value,$("#key").value);};
-$f("reset").onclick=()=>{$("#text").value=$("#number").value=$("#key").value=""};
+let c=async(t,k)=>await encrypt(t,k);
+let d=async(t,k)=>await decrypt(t,k);
+let v=async(t,k,h)=>t===await decrypt(h,k);
+
+let ls={
+set:(a,b)=>{localStorage.setItem(a,JSON.stringify(b));},
+get:(a)=>{return JSON.parse(localStorage.getItem(a));},
+remove:(a)=>{localStorage.removeItem(a);},
+};
+
+let config={
+hashusr:"",
+hashpwd:"",
+logged:false,
+};
+
+$("#signin").onsubmit=async(e)=>{
+e.preventDefault();
+let data=Object.fromEntries(new FormData(e.target));
+config.logged=!config.logged;
+config.hashusr=await c(data.usr,data.usr);
+config.hashpwd=await c(data.pwd,data.pwd);
+$("#hashusr").innerText=config.hashusr;
+$("#hashpwd").innerText=config.hashpwd;
+$("#status").checked=config.logged;
+$$("#logout","fieldset").disabled=!config.logged;
+$$("#clear","fieldset").disabled=!config.logged;
+$$("#signin","fieldset").disabled=config.logged;
+e.target.reset();
+};
+
+$("#login").onsubmit=async(e)=>{
+e.preventDefault();
+let data=Object.fromEntries(new FormData(e.target));
+config.logged=await v(data.usr,data.usr,config.hashusr)==await v(data.pwd,data.pwd,config.hashpwd)==true;
+$("#status").checked=config.logged;
+$$("#logout","fieldset").disabled=!config.logged;
+$$("#login","fieldset").disabled=config.logged;
+e.target.reset();
+};
+
+$("#logout").onsubmit=async(e)=>{
+e.preventDefault();
+config.logged=false;
+$("#status").checked=config.logged;
+$$("#login","fieldset").disabled=config.logged;
+$$("#logout","fieldset").disabled=!config.logged;
+};
+
+$("#clear").onsubmit=async(e)=>{
+e.preventDefault();
+config.logged=!config.logged;
+config.hashusr="";
+config.hashpwd="";
+$("#hashusr").innerText=config.hashusr;
+$("#hashpwd").innerText=config.hashpwd;
+$("#status").checked=config.logged;
+$$("#signin","fieldset").disabled=config.logged;
+$$("#login","fieldset").disabled=config.logged;
+$$("#logout","fieldset").disabled=!config.logged;
+$$("#clear","fieldset").disabled=!config.logged;
+};
 
 };
 </script></header><body>
-<input id="text" placeholder="decrypted">
-<button>code</button>
-<br>
-<input id="number" placeholder="encrypted">
-<button>decode</button>
-<br>
-<input id="key" placeholder="key">
-<button>reset</button>
+<label for="status">logged:
+<input type="checkbox" id="status" disabled />
+</label>
+<br />
+hashusr:
+<span id="hashusr"></span>
+<br />
+hashpwd:
+<span id="hashpwd"></span>
+
+<br/>
+<br/>
+
+<form id="signin" style="width: fit-content;">
+<fieldset>
+<legend>signin</legend>
+<input type="text" name="usr" placeholder="username" required />
+<br />
+<input type="password" name="pwd" placeholder="password" required />
+<br />
+<span style="display: flex; justify-content: right;">
+<input type="submit" />
+</span>
+</fieldset>
+</form>
+
+<br />
+
+<form id="login" style="width: fit-content;">
+<fieldset disabled>
+<legend>login</legend>
+<input type="text" name="usr" placeholder="username" required />
+<br />
+<input type="password" name="pwd" placeholder="password" required />
+<br />
+<span style="display: flex; justify-content: right;">
+<input type="submit" />
+</span>
+</fieldset>
+</form>
+
+<br />
+
+<form id="logout" style="width: fit-content;">
+<fieldset disabled>
+<legend>logout</legend>
+<span style="display: flex; justify-content: right;">
+<input type="submit" />
+</span>
+</fieldset>
+</form>
+
+<br />
+
+<form id="clear" style="width: fit-content;">
+<fieldset disabled>
+<legend>clear</legend>
+<span style="display: flex; justify-content: right;">
+<input type="submit" />
+</span>
+</fieldset>
+</form>
+
 </body></html>
