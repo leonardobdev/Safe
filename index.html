@@ -1,4 +1,8 @@
-<html><header><script type="module">
+<html><header>
+<title>Safe</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script type="module">
 window.onload = () => {
 
 let encrypt=async(plaintext,password)=>{
@@ -36,6 +40,9 @@ let $f=(e)=>[...document.querySelectorAll('*')].filter(a=>a.value==e||a.innerTex
 let c=async(t,k)=>await encrypt(t,k);
 let d=async(t,k)=>await decrypt(t,k);
 let v=async(t,k,h)=>t===await decrypt(h,k);
+$f("encrypt").onclick=async()=>{$("#encrypted").value=await c($("#decrypted").value,$("#key").value);};
+$f("decrypt").onclick=async()=>{$("#decrypted").value=await d($("#encrypted").value,$("#key").value);};
+$f("reset").onclick=()=>{$("#decrypted").value=$("#encrypted").value=$("#key").value=""};
 
 let ls={
 set:(a,b)=>{localStorage.setItem(a,JSON.stringify(b));},
@@ -53,12 +60,12 @@ let update=()=>{
 $("#logged").checked=config.logged;
 $("#hashusr").value=config.hashusr;
 $("#hashpwd").value=config.hashpwd;
-$$("#signin","fieldset").disabled=config.logged;
-$$("#login","fieldset").disabled=config.logged;
+$$("#signin","fieldset").disabled=config.logged||!!config.hashusr||!!config.hashpwd;
+$$("#login","fieldset").disabled=config.logged||!(config.hashusr&&config.hashpwd);
 $$("#logout","fieldset").disabled=!config.logged;
 };
 
-$("#config").onsubmit=async(e)=>{
+$("#config").onsubmit=(e)=>{
 e.preventDefault();
 let data=Object.fromEntries(new FormData(e.target));
 config.logged=data.logged;
@@ -85,15 +92,15 @@ update();
 e.target.reset();
 };
 
-$("#logout").onsubmit=async(e)=>{
+$("#logout").onsubmit=(e)=>{
 e.preventDefault();
 config.logged=false;
 update();
 };
 
-$("#clear").onsubmit=async(e)=>{
+$("#clear").onsubmit=(e)=>{
 e.preventDefault();
-config.logged=!config.logged;
+config.logged=false;
 config.hashusr="";
 config.hashpwd="";
 update();
@@ -105,15 +112,15 @@ update();
 <fieldset>
 <legend>config</legend>
 <label for="logged">logged:
-<input type="checkbox" id="logged" />
+<input type="checkbox" name="logged" id="logged" />
 </label>
 <br />
 <label for="hashusr">hashusr:
-<input type="password" id="hashusr" />
+<input type="text" name="hashusr" id="hashusr" />
 </label>
 <br />
 <label for="hashpwd">hashpwd:
-<input type="password" id="hashpwd" />
+<input type="text" name="hashpwd" id="hashpwd" />
 </label>
 <span style="display: flex; justify-content: right;">
 <input type="submit" />
@@ -123,12 +130,12 @@ update();
 
 <br/>
 
-<form id="signin" style="width: fit-content;">
-<fieldset>
+<form id="signin">
+<fieldset style="width: fit-content;">
 <legend>signin</legend>
 <input type="text" name="usr" placeholder="username" required />
 <br />
-<input type="password" name="pwd" placeholder="password" required />
+<input type="text" name="pwd" placeholder="password" required />
 <br />
 <span style="display: flex; justify-content: right;">
 <input type="submit" />
@@ -138,12 +145,12 @@ update();
 
 <br />
 
-<form id="login" style="width: fit-content;">
-<fieldset disabled>
+<form id="login">
+<fieldset style="width: fit-content;" disabled>
 <legend>login</legend>
 <input type="text" name="usr" placeholder="username" required />
 <br />
-<input type="password" name="pwd" placeholder="password" required />
+<input type="text" name="pwd" placeholder="password" required />
 <br />
 <span style="display: flex; justify-content: right;">
 <input type="submit" />
@@ -153,8 +160,8 @@ update();
 
 <br />
 
-<form id="logout" style="width: fit-content;">
-<fieldset disabled>
+<form id="logout">
+<fieldset style="width: fit-content;" disabled>
 <legend>logout</legend>
 <span style="display: flex; justify-content: right;">
 <input type="submit" />
@@ -164,8 +171,8 @@ update();
 
 <br />
 
-<form id="clear" style="width: fit-content;">
-<fieldset>
+<form id="clear">
+<fieldset style="width: fit-content;">
 <legend>clear</legend>
 <span style="display: flex; justify-content: right;">
 <input type="submit" />
@@ -173,4 +180,17 @@ update();
 </fieldset>
 </form>
 
+<br />
+
+<fieldset style="width: fit-content;">
+<legend>encrypt/decrypt</legend>
+<input type="text" id="decrypted" placeholder="decrypted">
+<button>encrypt</button>
+<br>
+<input type="text" id="encrypted" placeholder="encrypted">
+<button>decrypt</button>
+<br>
+<input type="text" id="key" placeholder="key">
+<button>reset</button>
+</fieldset>
 </body></html>
