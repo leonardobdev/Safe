@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script type="module">
-window.onload = () => {
+window.onload=()=>{
 
 let encrypt=async(plaintext,password)=>{
 let ptUtf8 = new TextEncoder().encode(plaintext);
@@ -39,7 +39,7 @@ let $$=(e,ee)=>$(e).querySelector(ee);
 let $f=(e)=>[...document.querySelectorAll('*')].filter(a=>a.value==e||a.innerText==e)[0];
 let c=async(t,k)=>await encrypt(t,k);
 let d=async(t,k)=>await decrypt(t,k);
-let v=async(t,k,h)=>t===await decrypt(h,k);
+let v=async(t,k)=>k===await d(t,k);
 $f("encrypt").onclick=async()=>{$("#encrypted").value=await c($("#decrypted").value,$("#key").value);};
 $f("decrypt").onclick=async()=>{$("#decrypted").value=await d($("#encrypted").value,$("#key").value);};
 $f("reset").onclick=()=>{$("#decrypted").value=$("#encrypted").value=$("#key").value=""};
@@ -51,9 +51,9 @@ remove:(a)=>{localStorage.removeItem(a);},
 };
 
 let config={
+logged:false,
 hashusr:"",
 hashpwd:"",
-logged:false,
 };
 
 let update=()=>{
@@ -63,6 +63,7 @@ $("#hashpwd").value=config.hashpwd;
 $$("#signin","fieldset").disabled=config.logged||!!config.hashusr||!!config.hashpwd;
 $$("#login","fieldset").disabled=config.logged||!(config.hashusr&&config.hashpwd);
 $$("#logout","fieldset").disabled=!config.logged;
+ls.set("config",config);
 };
 
 $("#config").onsubmit=(e)=>{
@@ -80,21 +81,21 @@ let data=Object.fromEntries(new FormData(e.target));
 config.logged=!config.logged;
 config.hashusr=await c(data.usr,data.usr);
 config.hashpwd=await c(data.pwd,data.pwd);
-update();
 e.target.reset();
+update();
 };
 
 $("#login").onsubmit=async(e)=>{
 e.preventDefault();
 let data=Object.fromEntries(new FormData(e.target));
-config.logged=await v(data.usr,data.usr,config.hashusr)==await v(data.pwd,data.pwd,config.hashpwd)==true;
-update();
+config.logged=await v(config.hashusr,data.usr)==await v(config.hashpwd,data.pwd)==!config.logged;
 e.target.reset();
+update();
 };
 
 $("#logout").onsubmit=(e)=>{
 e.preventDefault();
-config.logged=false;
+config.logged=!config.logged;
 update();
 };
 
@@ -105,6 +106,13 @@ config.hashusr="";
 config.hashpwd="";
 update();
 };
+
+if(ls.get("config")){
+config=ls.get("config");
+}else{
+ls.set("config",config);
+}
+update();
 
 };
 </script></header><body style="font-family: Monospace;">
